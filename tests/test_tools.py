@@ -75,3 +75,17 @@ def test_build_crew_server_constructs(tmp_path):
     bus = Bus(tmp_path / "bus.db")
     cfg = build_crew_server(bus, "r1", "architect")
     assert cfg is not None
+
+
+def test_ask_human_none_value_returns_error(tmp_path):
+    bus = Bus(tmp_path / "bus.db")
+    out = anyio.run(lambda: ask_human_impl(bus, "r1", "architect", {"questions": None}))
+    assert out.startswith("ERROR")
+    assert bus.messages("r1") == []
+
+
+def test_finish_none_value_returns_error(tmp_path):
+    bus = Bus(tmp_path / "bus.db")
+    out = anyio.run(lambda: finish_impl(bus, "r1", "manager", {"summary": None}))
+    assert out.startswith("ERROR")
+    assert bus.messages("r1") == []

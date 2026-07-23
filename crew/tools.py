@@ -31,7 +31,7 @@ async def send_message_impl(bus: Bus, run_id: str, agent: str, args: dict) -> st
 
 
 async def ask_human_impl(bus: Bus, run_id: str, agent: str, args: dict) -> str:
-    questions = args.get("questions", "").strip()
+    questions = (args.get("questions") or "").strip()
     if not questions:
         return "ERROR: 'questions' is required."
     bus.append(
@@ -46,7 +46,7 @@ async def ask_human_impl(bus: Bus, run_id: str, agent: str, args: dict) -> str:
 
 
 async def finish_impl(bus: Bus, run_id: str, agent: str, args: dict) -> str:
-    summary = args.get("summary", "").strip()
+    summary = (args.get("summary") or "").strip()
     if not summary:
         return "ERROR: 'summary' is required."
     bus.append(
