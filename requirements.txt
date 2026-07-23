@@ -1,0 +1,9 @@
+# Compatible-release pins (~=): patch/minor updates land, a breaking major cannot
+# arrive silently. Same convention as ../threat-intel-pipeline/requirements.txt.
+claude-agent-sdk~=0.2.126
+python-dotenv~=1.2
+rich~=15.0
+
+# Dev
+pytest~=9.1
+ruff~=0.15

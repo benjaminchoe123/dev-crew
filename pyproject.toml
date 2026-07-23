@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# F: pyflakes · E,W: pycodestyle · I: import sort · B: bugbear · UP: pyupgrade
+# Same rule set as ../threat-intel-pipeline.
+select = ["F", "E", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["crew"]
