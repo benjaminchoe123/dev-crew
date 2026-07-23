@@ -12,3 +12,6 @@ data/
 *.db
 *.db-shm
 *.db-wal
+
+# SDD progress ledger (scratch)
+.superpowers/

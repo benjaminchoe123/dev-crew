@@ -3,6 +3,7 @@
 claude-agent-sdk~=0.2.126
 python-dotenv~=1.2
 rich~=15.0
+anyio~=4.14
 
 # Dev
 pytest~=9.1
