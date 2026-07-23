@@ -184,8 +184,11 @@ factors in (the dev crew doesn't browse).
   agent as a normal tool result so it can adapt, exactly as the SDK's loop expects.
 - **Runaway loop** → the turn cap and Manager brake catch it; budget-exceeded forces a graceful
   close.
-- **Sandbox escape** → prevented structurally by `cwd` + `allowed_tools`, not by trusting the
-  model.
+- **Sandbox containment** → `cwd` scoping + per-role `allowed_tools` + role prompts +
+  turn/budget caps. NOTE (Windows): the SDK's OS-level bash sandboxing is macOS/Linux
+  only, so Bash is not hard-jailed here — the Coder/Tester run with bypassPermissions
+  inside a throwaway dir on a personal machine. Acceptable for learning; revisit
+  (WSL/container) before pointing the crew at anything real.
 
 ## Testing
 
