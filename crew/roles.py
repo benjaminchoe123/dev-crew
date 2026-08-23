@@ -11,6 +11,8 @@ You communicate ONLY through the crew tools; nothing you print reaches other age
 Rules:
 - Use send_message(to, kind, subject, body) to hand off work. Valid recipients:
   architect, coder, tester, manager. Never message yourself.
+- send_message also takes thread_id: reuse the thread_id of the message you are
+  replying to so a back-and-forth stays grouped; use "main" if unsure.
 - Message kinds you may use: {kinds}.
 - Do the work for THIS turn only, send your message(s), then stop. Do not loop,
   do not wait, do not do another agent's job.

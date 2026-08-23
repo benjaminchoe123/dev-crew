@@ -130,6 +130,22 @@ class Bus:
         )
         return self._rows_to_msgs(rows)
 
+    def history_for(self, run_id: str, agent: str) -> list[Msg]:
+        """Every message the agent is party to (sent OR received), oldest first.
+
+        This is the agent's memory across turns: the scheduler advances the read
+        cursor each turn, so `unread_for` alone would drop everything already seen.
+        Rebuilding context from the bus keeps memory on the bus (replayable, and
+        renderable by the GUI) rather than in an SDK session.
+        """
+        rows = self._conn.execute(
+            "SELECT id, run_id, ts, sender, recipient, thread_id, kind, subject, body"
+            " FROM messages WHERE run_id = ? AND (recipient = ? OR sender = ?)"
+            " ORDER BY id",
+            (run_id, agent, agent),
+        )
+        return self._rows_to_msgs(rows)
+
     def advance_cursor(self, agent: str, last_id: int) -> None:
         self._conn.execute(
             "INSERT INTO cursors (agent, last_id) VALUES (?, ?)"

@@ -17,6 +17,29 @@ def test_send_message_appends(tmp_path):
     assert len(msgs) == 1 and msgs[0].sender == "coder" and msgs[0].recipient == "tester"
 
 
+def test_send_message_sets_thread_id(tmp_path):
+    bus = Bus(tmp_path / "bus.db")
+    anyio.run(
+        lambda: send_message_impl(
+            bus, "r1", "coder",
+            {"to": "tester", "kind": "ready_for_test", "subject": "s",
+             "body": "b", "thread_id": "feat-x"},
+        )
+    )
+    assert bus.messages("r1")[0].thread_id == "feat-x"
+
+
+def test_send_message_defaults_thread_id_to_main(tmp_path):
+    bus = Bus(tmp_path / "bus.db")
+    anyio.run(
+        lambda: send_message_impl(
+            bus, "r1", "coder",
+            {"to": "tester", "kind": "ready_for_test", "subject": "s", "body": "b"},
+        )
+    )
+    assert bus.messages("r1")[0].thread_id == "main"
+
+
 def test_send_message_rejects_self(tmp_path):
     bus = Bus(tmp_path / "bus.db")
     out = anyio.run(

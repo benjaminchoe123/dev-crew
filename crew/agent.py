@@ -11,8 +11,19 @@ from crew.roles import Role
 from crew.tools import build_crew_server
 
 
-def inbox_to_prompt(inbox: list[Msg]) -> str:
-    lines = ["Your inbox (oldest first). Act on it now:"]
+def build_prompt(history: list[Msg], inbox: list[Msg]) -> str:
+    """Stable conversation prefix + volatile unread suffix.
+
+    `history` is everything the agent is party to (from the bus). The unread
+    `inbox` is the tail of that history; we drop it from the context section so
+    it isn't duplicated, keeping the context a byte-stable, cacheable prefix and
+    the unread a clearly-marked action list.
+    """
+    unread_ids = {m.id for m in inbox}
+    context = [m for m in history if m.id not in unread_ids]
+    lines = ["Conversation so far (context, oldest first):"]
+    lines += [m.to_prompt() for m in context] or ["(none yet)"]
+    lines += ["", "New messages addressed to you — act on these now:"]
     lines += [m.to_prompt() for m in inbox]
     return "\n".join(lines)
 
@@ -46,7 +57,8 @@ class CrewAgent:
         cost = 0.0
         try:
             options = build_options(self.role, bus, self._run_id, self._workspace)
-            async for message in query(prompt=inbox_to_prompt(inbox), options=options):
+            prompt = build_prompt(bus.history_for(self._run_id, self.name), inbox)
+            async for message in query(prompt=prompt, options=options):
                 if isinstance(message, ResultMessage) and message.total_cost_usd:
                     cost = message.total_cost_usd
         except ClaudeSDKError as exc:

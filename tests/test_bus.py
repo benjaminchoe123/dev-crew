@@ -39,6 +39,33 @@ def test_unread_filters_by_recipient(tmp_path):
     assert bus.unread_for("r1", "coder") == []
 
 
+def test_history_for_includes_sent_and_received_in_order(tmp_path):
+    bus = make_bus(tmp_path)
+    a = bus.append(run_id="r1", sender="architect", recipient="coder",
+                   kind="plan", subject="s", body="p")
+    b = bus.append(run_id="r1", sender="coder", recipient="tester",
+                   kind="ready_for_test", subject="s", body="r")
+    c = bus.append(run_id="r1", sender="tester", recipient="coder",
+                   kind="test_failed", subject="s", body="f")
+    assert [m.id for m in bus.history_for("r1", "coder")] == [a, b, c]
+
+
+def test_history_for_excludes_other_agents_private_traffic(tmp_path):
+    bus = make_bus(tmp_path)
+    bus.append(run_id="r1", sender="tester", recipient="manager",
+               kind="test_passed", subject="s", body="ok")
+    assert bus.history_for("r1", "coder") == []
+
+
+def test_history_for_scoped_by_run(tmp_path):
+    bus = make_bus(tmp_path)
+    bus.append(run_id="r1", sender="architect", recipient="coder",
+               kind="plan", subject="s", body="p1")
+    bus.append(run_id="r2", sender="architect", recipient="coder",
+               kind="plan", subject="s", body="p2")
+    assert [m.body for m in bus.history_for("r1", "coder")] == ["p1"]
+
+
 def test_status_default_and_set(tmp_path):
     bus = make_bus(tmp_path)
     assert bus.get_status("coder") == "idle"

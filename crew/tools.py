@@ -24,8 +24,10 @@ async def send_message_impl(bus: Bus, run_id: str, agent: str, args: dict) -> st
         return f"ERROR: unknown recipient '{to}'. Valid: {', '.join(AGENT_NAMES)}"
     if bus.has_duplicate(run_id, agent, to, kind, body):
         return "ERROR: identical message already sent. Do not repeat yourself."
+    thread_id = args.get("thread_id") or "main"
     mid = bus.append(
-        run_id=run_id, sender=agent, recipient=to, kind=kind, subject=subject, body=body
+        run_id=run_id, sender=agent, recipient=to, kind=kind, subject=subject,
+        body=body, thread_id=thread_id,
     )
     return f"Message {mid} delivered to {to}. End your turn when your work is done."
 
@@ -67,7 +69,7 @@ def build_crew_server(bus: Bus, run_id: str, agent_name: str) -> McpSdkServerCon
     @tool(
         "send_message",
         "Send a message to another crew agent. This is the ONLY way to hand off work.",
-        {"to": str, "kind": str, "subject": str, "body": str},
+        {"to": str, "kind": str, "subject": str, "body": str, "thread_id": str},
     )
     async def send_message(args: dict) -> dict:
         return _text(await send_message_impl(bus, run_id, agent_name, args))

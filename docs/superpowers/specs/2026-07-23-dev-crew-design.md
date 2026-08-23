@@ -69,7 +69,8 @@ SQLite, append-only. Two tables.
   `awaiting_human` / `done`), `updated_at`. Mutable; the one place the GUI reads "what is each
   agent doing right now."
 
-The bus lives **outside** the run sandbox so a Coder's file tools can never touch it.
+The bus lives **outside** the run sandbox and is excluded from the Coder's default scope
+(`cwd`) — though on Windows this is convention, not an OS jail; see Error handling.
 
 **Determinism is a cost requirement, not a nicety.** Message rows are serialized into agent
 prompts with sorted keys and no timestamps in the cached prefix — otherwise prompt caching
@@ -139,8 +140,9 @@ The turn loop and every guard.
 
 ### 6. Workspace — `crew/workspace.py`
 
-Each run builds in `runs/<run_id>/`. Coder/Tester tools are `cwd`-scoped there and cannot
-reach the bus DB or the user's real projects. Garbage-collected on request, not automatically
+Each run builds in `runs/<run_id>/`. Coder/Tester tools are `cwd`-scoped there, keeping work
+out of the bus DB and the user's real projects by default (not OS-enforced on Windows; see
+Error handling). Garbage-collected on request, not automatically
 (a failed run is worth inspecting).
 
 ### 7. Output — `crew/report.py`
