@@ -106,3 +106,54 @@ def test_windows_separators_are_understood_too():
     """A guard that understands one separator is a guard with a documented bypass."""
     assert check_tool("tester", "Write", {"file_path": r"tests\test_x.py"}, WS) is None
     assert check_tool("tester", "Write", {"file_path": r"app\calc.py"}, WS) is not None
+
+
+# --- the mirror image -------------------------------------------------------
+# Yesterday's fix stopped the tester patching implementation code. It left the
+# other half open: the coder has unrestricted Write and Edit, so it can rewrite
+# the tester's tests until they pass. That is the same defeat of the separation,
+# from the other side, and arguably the easier one to reach for -- the coder's
+# role text tells it to "fix exactly what the tester reported", and a failing
+# assertion is the most direct thing to edit.
+
+def test_the_coder_may_not_edit_the_tests_that_judge_it():
+    assert check_tool("coder", "Edit", {"file_path": "tests/test_calc.py"}, WS) is not None
+
+
+def test_the_coder_may_not_overwrite_a_test_file_either():
+    assert check_tool("coder", "Write", {"file_path": "tests/test_calc.py"}, WS) is not None
+
+
+def test_the_coder_may_still_write_implementation_code():
+    assert check_tool("coder", "Write", {"file_path": "app/calc.py"}, WS) is None
+
+
+def test_the_coder_is_stopped_by_an_absolute_path_into_tests_too():
+    assert check_tool("coder", "Write", {"file_path": "/work/tests/test_calc.py"}, WS) is not None
+
+
+def test_a_path_climbing_into_tests_is_denied_for_the_coder():
+    assert check_tool("coder", "Write", {"file_path": "app/../tests/test_calc.py"}, WS) is not None
+
+
+def test_a_file_merely_named_like_a_test_outside_tests_is_fine():
+    """The boundary is the directory, not the filename. A coder writing
+    `app/testing_utils.py` is doing its job."""
+    assert check_tool("coder", "Write", {"file_path": "app/testing_utils.py"}, WS) is None
+
+
+def test_the_coders_bash_is_no_more_guarded_than_the_testers():
+    assert check_tool("coder", "Bash", {"command": "rm tests/test_calc.py"}, WS) is None
+
+
+def test_the_two_halves_fail_in_opposite_directions_on_an_unparseable_path():
+    """Not an inconsistency -- the same ambiguity means opposite things to an
+    allowlist and a denylist. Pinned so nobody "fixes" one to match the other."""
+    climbing = {"file_path": "../../outside.py"}
+    assert check_tool("tester", "Write", climbing, WS) is not None   # closed
+    assert check_tool("coder", "Write", climbing, WS) is None        # open
+
+
+def test_a_write_naming_no_path_is_refused_for_the_coder_too():
+    """Malformed, not ambiguous: a Write with no target cannot succeed anyway."""
+    assert check_tool("coder", "Write", {}, WS) is not None

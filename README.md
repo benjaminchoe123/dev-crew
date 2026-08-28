@@ -66,10 +66,24 @@ commands to look like a guarantee would be the same theatre this replaced. The t
 does not hold. Closing it needs OS-level sandboxing, which the SDK provides on macOS and Linux
 but not on Windows — see the caveat in `CLAUDE.md`.
 
-So: the manager's boundary is enforced by the tool list, the tester's file writes are enforced
-by a path guard, and the tester's shell is not enforced at all. Three different strengths, named
-separately, because collapsing them into "enforced by which tools each role is given" is how the
-first version of this README ended up asserting something false.
+The **coder** is guarded in the mirror image: it may write anywhere *except* `tests/`. Fixing the
+tester's half on its own left the same separation defeated from the other side, and the easier
+side to reach for — the coder is told to "fix exactly what the tester reported", and a failing
+assertion is the most direct thing to edit. Nothing in the design says the coder authors tests, so
+nothing legitimate is lost.
+
+The two halves deliberately fail in **opposite directions** when a path cannot be parsed, because
+the same ambiguity means opposite things to each. The tester's allowlist fails closed: an
+unparseable target has not been shown to be inside `tests/`. The coder's denylist fails open: the
+same fact, read permissively, because failing closed there would block the coder from writing
+anything the parser did not recognise, which is most of its job. A call naming no path at all is
+refused for both — that is malformed, not ambiguous.
+
+So: the manager's boundary is enforced by the tool list, the coder's and tester's file writes are
+enforced by a path guard pointing in opposite directions, and neither agent's shell is enforced at
+all. Four different strengths, named separately, because collapsing them into "enforced by which
+tools each role is given" is how the first version of this README ended up asserting something
+false.
 
 ## Design decisions I'd defend in an interview
 
@@ -105,7 +119,7 @@ bleeds into an agent's context, and each is `cwd`-scoped to its own `runs/<id>/`
 
 ## Honest limitations
 
-- **The crew has never been run live end-to-end.** All 69 tests pass against `FakeAgent`s at
+- **The crew has never been run live end-to-end.** All 78 tests pass against `FakeAgent`s at
   $0 with no API calls. The plumbing, guards, and message flow are verified; the quality of
   what four real agents actually produce together is not. That run is the next step.
 - **The sandboxing is weak on Windows.** The SDK's OS-level bash sandboxing is macOS/Linux
@@ -120,7 +134,7 @@ bleeds into an agent's context, and each is `cwd`-scoped to its own `runs/<id>/`
 
 ```bash
 python -m crew.run "<idea>"                  # flags: --budget 5.0 --turn-cap 24 --vault <dir>
-python -m pytest tests/ -q                   # 69 tests, all $0 (FakeAgents, no API calls)
+python -m pytest tests/ -q                   # 78 tests, all $0 (FakeAgents, no API calls)
 python -m ruff check crew/ tests/
 ```
 

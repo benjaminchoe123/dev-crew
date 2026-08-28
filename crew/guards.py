@@ -22,10 +22,26 @@ from __future__ import annotations
 #: an MCP call, and none of those can patch an implementation.
 WRITE_TOOLS = frozenset({"Write", "Edit", "MultiEdit", "NotebookEdit"})
 
-#: Where each role is allowed to write, relative to the workspace. A role absent
-#: from this map is unrestricted -- writing code is the coder's entire job.
+#: Where a role is allowed to write, relative to the workspace. The tester may
+#: only author tests; everything else is the coder's to change.
 WRITE_SCOPES: dict[str, tuple[str, ...]] = {
     "tester": ("tests",),
+}
+
+#: Where a role is *forbidden* to write. Two mechanisms rather than one because
+#: the two constraints are genuinely different shapes: the tester is confined to
+#: one directory, while the coder may write anywhere **except** one -- and an
+#: allowlist cannot express "everywhere else" without enumerating a project's
+#: whole layout in advance.
+#:
+#: The coder entry is the mirror of the tester's, and the half that was missing
+#: until 2026-08-28. Stopping the tester from patching implementation while
+#: leaving the coder free to rewrite the tests defeats the same separation from
+#: the other side, and it is the easier side to reach for: the coder is told to
+#: "fix exactly what the tester reported", and a failing assertion is the most
+#: direct thing to edit.
+WRITE_DENIED: dict[str, tuple[str, ...]] = {
+    "coder": ("tests",),
 }
 
 #: Tool inputs spell the target differently depending on the tool.
@@ -74,20 +90,44 @@ def _relative_parts(raw: str, workspace: str) -> tuple[str, ...] | None:
 def check_tool(role_name: str, tool_name: str, tool_input: dict, workspace: str) -> str | None:
     """A refusal reason, or None to allow.
 
-    Fails *closed*: a write whose target cannot be parsed is denied, because a
-    guard that waves through what it does not understand is the failure it exists
-    to prevent.
+    The two halves fail in opposite directions on purpose, because "I could not
+    parse this path" means opposite things to each:
+
+    - an **allowlist** (tester) fails *closed*. An unparseable target has not
+      been shown to be inside `tests/`, and a guard that waves through what it
+      does not understand is the failure it exists to prevent;
+    - a **denylist** (coder) fails *open*. An unparseable target has not been
+      shown to be inside `tests/` either -- and here that is the permissive
+      reading. Failing closed would block the coder from writing anything the
+      parser did not recognise, which is most of its job.
+
+    A call naming no path at all is refused for both. That is a malformed write,
+    not an ambiguous one.
     """
     scope = WRITE_SCOPES.get(role_name)
-    if scope is None or tool_name not in WRITE_TOOLS:
+    denied = WRITE_DENIED.get(role_name)
+    if (scope is None and denied is None) or tool_name not in WRITE_TOOLS:
         return None
 
     raw = next((tool_input[k] for k in _PATH_KEYS if tool_input.get(k)), None)
     if not raw:
-        return (f"{role_name} may only write under {'/, '.join(scope)}/, and this "
+        where = "/, ".join(scope) if scope else "/, ".join(denied or ())
+        return (f"{role_name}'s writes are scoped around {where}/, and this "
                 f"{tool_name} call names no path to check")
 
     parts = _relative_parts(str(raw), workspace)
+
+    if denied is not None:
+        # A path that cannot be resolved is allowed here rather than denied: for a
+        # denylist, unparseable means "not shown to be inside the forbidden
+        # directory". Failing closed on a denylist would block the coder from
+        # writing anything the parser did not understand, which is most of its job.
+        if parts and parts[0] in denied:
+            return (f"{role_name} may not write under {'/, '.join(denied)}/. Refusing to "
+                    f"{tool_name} {raw}. Fix the code the test is failing on, not the test.")
+        if scope is None:
+            return None
+
     if parts is None or not parts or parts[0] not in scope:
         # ASCII only: this string is surfaced to a console that may be cp1252,
         # and an em-dash in an error path is how you turn a refusal into a crash.

@@ -34,5 +34,7 @@ wakes whoever has unread mail and enforces every guard. Spec:
   role prompt, and it **fails closed**: an unparseable target is denied. Do not "fix" a
   denial by widening `WRITE_SCOPES`; the denial is the feature. Note the limit honestly —
   `Bash` is unguarded and can write anywhere, because pattern-matching shell commands would
-  be theatre. Never restate the separation as stronger than these three distinct strengths:
-  manager = tool list, tester writes = path guard, tester shell = unenforced.
+  be theatre. Never restate the separation as stronger than these four distinct strengths:
+  manager = tool list, tester writes = allowlist guard (fails closed), coder writes = denylist
+  guard on `tests/` (fails open), either agent's shell = unenforced. The allow/deny halves fail
+  in opposite directions deliberately; do not "fix" one to match the other.
