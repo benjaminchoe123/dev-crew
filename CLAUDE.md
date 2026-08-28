@@ -30,3 +30,9 @@ wakes whoever has unread mail and enforces every guard. Spec:
   before pointing the crew at anything real.
 - Tool gating is structural: who may call `finish`/`ask_human` lives in `roles.py`
   `allowed_tools`, and sender identity is closure-bound in `tools.py` — never trust-based.
+- The tester's write scope is enforced in `crew/guards.py` via `can_use_tool`, not by its
+  role prompt, and it **fails closed**: an unparseable target is denied. Do not "fix" a
+  denial by widening `WRITE_SCOPES`; the denial is the feature. Note the limit honestly —
+  `Bash` is unguarded and can write anywhere, because pattern-matching shell commands would
+  be theatre. Never restate the separation as stronger than these three distinct strengths:
+  manager = tool list, tester writes = path guard, tester shell = unenforced.

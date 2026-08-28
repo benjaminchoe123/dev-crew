@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKError, ResultMessage, query
+from claude_agent_sdk import (
+    ClaudeAgentOptions,
+    ClaudeSDKError,
+    PermissionResultAllow,
+    PermissionResultDeny,
+    ResultMessage,
+    query,
+)
 
 from crew.bus import Bus, Msg
+from crew.guards import check_tool
 from crew.roles import Role
 from crew.tools import build_crew_server
 
@@ -28,6 +36,23 @@ def build_prompt(history: list[Msg], inbox: list[Msg]) -> str:
     return "\n".join(lines)
 
 
+def build_permission_check(role: Role, workspace: Path):
+    """The tester's role text asks it not to fix the coder's code. This is the
+    part that does not ask.
+
+    `permission_mode="bypassPermissions"` waves through the interactive prompt;
+    `can_use_tool` still runs, so this is the one place a per-role boundary can
+    be enforced rather than requested.
+    """
+    async def can_use_tool(tool_name: str, tool_input: dict, context):  # noqa: ARG001
+        reason = check_tool(role.name, tool_name, tool_input, str(workspace))
+        if reason:
+            return PermissionResultDeny(message=reason)
+        return PermissionResultAllow()
+
+    return can_use_tool
+
+
 def build_options(role: Role, bus: Bus, run_id: str, workspace: Path) -> ClaudeAgentOptions:
     return ClaudeAgentOptions(
         model=role.model,
@@ -38,6 +63,7 @@ def build_options(role: Role, bus: Bus, run_id: str, workspace: Path) -> ClaudeA
         mcp_servers={"crew": build_crew_server(bus, run_id, role.name)},
         setting_sources=[],  # isolation: no user/project CLAUDE.md or settings
         permission_mode="bypassPermissions",  # sandbox dir; see spec Windows caveat
+        can_use_tool=build_permission_check(role, workspace),
         max_turns=role.max_turns,
         max_budget_usd=role.max_budget_usd,
     )

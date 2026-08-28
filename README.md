@@ -42,9 +42,34 @@ entry rather than a subclass:
 | tester | Sonnet, medium effort | `Read` `Write` `Bash` `Glob` `Grep`, send | 30 turns · $1.00 |
 | manager | Opus, high effort | `Read` `Glob` `Grep`, send, `finish` | 8 turns · $0.75 |
 
-The tester has `Write` but **not** `Edit` — it can author tests but cannot quietly patch the
-coder's implementation to make its own tests pass. The manager has no write tools at all. The
-separation is enforced by which tools each role is given, not by asking the agents nicely.
+The manager has no write tools at all — no `Write`, no `Edit`, no `Bash` — so its read-only
+role is enforced by the tool list alone.
+
+The tester is the interesting one, and the earlier version of this README got it wrong. It said
+the tester "has `Write` but not `Edit`, so it cannot quietly patch the coder's implementation".
+That was backwards: **`Write` replaces a file wholesale, so it is a more complete patch than
+`Edit`, not a lesser one.** Removing `Edit` removed the weaker of the two operations and the
+README called the result enforcement.
+
+What enforces it now is `crew/guards.py`, wired in as the SDK's `can_use_tool` callback: the
+tester's `Write`/`Edit`/`MultiEdit`/`NotebookEdit` calls are denied unless the target resolves
+under `tests/`. It resolves `..` textually, understands both path separators, handles absolute
+paths inside the workspace, and **fails closed** — a write whose target cannot be parsed is
+refused, because a guard that waves through what it does not understand is the thing it exists
+to prevent. `permission_mode="bypassPermissions"` skips the interactive prompt but `can_use_tool`
+still runs, which is what makes this the one place a per-role boundary can actually live.
+
+**`Bash` is deliberately not guarded, and that is the honest limit of this.** A shell is a
+universal write primitive: `echo x > app/calc.py` defeats any path check, and pattern-matching
+commands to look like a guarantee would be the same theatre this replaced. The tester needs
+`Bash` to run pytest, so `Bash` stays open and this paragraph exists instead of a claim that
+does not hold. Closing it needs OS-level sandboxing, which the SDK provides on macOS and Linux
+but not on Windows — see the caveat in `CLAUDE.md`.
+
+So: the manager's boundary is enforced by the tool list, the tester's file writes are enforced
+by a path guard, and the tester's shell is not enforced at all. Three different strengths, named
+separately, because collapsing them into "enforced by which tools each role is given" is how the
+first version of this README ended up asserting something false.
 
 ## Design decisions I'd defend in an interview
 
