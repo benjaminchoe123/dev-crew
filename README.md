@@ -105,7 +105,7 @@ bleeds into an agent's context, and each is `cwd`-scoped to its own `runs/<id>/`
 
 ## Honest limitations
 
-- **The crew has never been run live end-to-end.** All 50 tests pass against `FakeAgent`s at
+- **The crew has never been run live end-to-end.** All 69 tests pass against `FakeAgent`s at
   $0 with no API calls. The plumbing, guards, and message flow are verified; the quality of
   what four real agents actually produce together is not. That run is the next step.
 - **The sandboxing is weak on Windows.** The SDK's OS-level bash sandboxing is macOS/Linux
@@ -120,7 +120,7 @@ bleeds into an agent's context, and each is `cwd`-scoped to its own `runs/<id>/`
 
 ```bash
 python -m crew.run "<idea>"                  # flags: --budget 5.0 --turn-cap 24 --vault <dir>
-python -m pytest tests/ -q                   # 50 tests, all $0 (FakeAgents, no API calls)
+python -m pytest tests/ -q                   # 69 tests, all $0 (FakeAgents, no API calls)
 python -m ruff check crew/ tests/
 ```
 
